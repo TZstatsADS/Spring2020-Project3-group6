@@ -4,6 +4,7 @@ output:
   html_document:
     info_print: paged
   html_notebook: default
+  pdf_document: default
   pinfo_document: default
   word_document: default
 ---
