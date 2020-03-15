@@ -45,15 +45,15 @@ library(caret)
 ```
 
 ### Step 0 set work directories
-```{r wkdir, eval=FALSE}
+```{r wkdir, eval=T}
 set.seed(0)
-setwd("~/Project3-FacialEmotionRecognition/doc")
+#setwd("~/Project3-FacialEmotionRecognition/doc")
 # here replace it with your own path or manually set it in RStudio to where this rmd file is located. 
 # use relative path for reproducibility
 ```
 
 Provide directories for training images. Training images and Training fiducial points will be in different subfolders. 
-```{r}
+```{r, eval=T}
 train_dir <- "../data/train_set/" # This will be modified for different data sets.
 train_image_dir <- paste(train_dir, "images/", sep="")
 train_pt_dir <- paste(train_dir,  "points/", sep="")
@@ -71,7 +71,7 @@ In this chunk, we have a set of controls for the evaluation experiments.
 + (T/F) run evaluation on an independent test set
 + (T/F) process features for test set
 
-```{r exp_setup}
+```{r exp_setup, eval=T}
 run.cv=TRUE # run cross-validation on the training set
 K <- 5  # number of CV folds
 run.feature.train=TRUE # process features for training set
@@ -80,13 +80,15 @@ run.feature.test=TRUE # process features for test set
 ```
 Using cross-validation or independent test set evaluation, we compare the performance of models with different specifications. In this Starter Code, we tune parameter k (number of neighbours) for KNN.
 
-```{r model_setup}
-n.trees = c(50,100,150,200,250,300)
-model_labels = paste("GBM with n.trees =", n.trees)
+```{r model_setup, eval=T}
+shrinkage <- c(0.001, 0.01, 0.1)
+n.minobsinnode <- c(5, 10, 15)
+n.trees <- c(200, 300, 400)
+param_grid <- expand.grid(shrinkage=shrinkage, n.minobsinnode=n.minobsinnode, n.trees=n.trees)
 ```
 
 ### Step 2: import data and train-test split 
-```{r}
+```{r, eval=T}
 #train-test split
 info <- read.csv(train_label_path)
 n <- nrow(info)
@@ -96,7 +98,7 @@ test_idx <- setdiff(info$Index,train_idx)
 ```
 
 If you choose to extract features from images, such as using Gabor filter, R memory will exhaust all images are read together. The solution is to repeat reading a smaller batch(e.g 100) and process them. 
-```{r}
+```{r, eval=T}
 n_files <- length(list.files(train_image_dir))
 
 image_list <- list()
@@ -106,7 +108,7 @@ for(i in 1:100){
 ```
 
 Fiducial points are stored in matlab format. In this step, we read them and store them in a list.
-```{r read fiducial points}
+```{r read fiducial points, eval=T}
 #function to read fiducial points
 #input: index
 #output: matrix of fiducial points corresponding to the index
@@ -136,7 +138,7 @@ and the midpoint of the upper lip(52).  For example, the distance of an happy fa
   + Input: list of images or fiducial point
   + Output: an RData file that contains extracted features and corresponding responses
 
-```{r feature}
+```{r feature, eval=T}
 source("../lib/feature.R")
 tm_feature_train <- NA
 if(run.feature.train){
@@ -176,12 +178,18 @@ source("../lib/test_gbm_mp.R")
 * Do model selection by choosing among different values of training model parameters.
 ```{r runcv, eval=F}
 source("../lib/cross_validation_gbm_mp.R")
+load("../output/feature_train.RData")
+load("../output/feature_test.RData")
+#load("../output/err_cv_gbm_mp.RData")
 if(run.cv){
-  #load("../output/err_cv_gbm_mp.RData")
-  err_cv <- matrix(0, nrow = length(n.trees), ncol = 2)
-  for(i in 1:length(n.trees)){
-    cat("n.trees=", n.trees[i], "\n")
-    err_cv[i,] <- cv.function(dat_train, K, .01, 10, n.trees[i])
+  model_labels <- rep(NA, nrow(param_grid))
+  for(i in 1:nrow(param_grid)){
+    model_labels[i] <- paste0("GBM with shrinkage = ",param_grid$shrinkage[i],", n.minobsinnode = ",param_grid$n.minobsinnode[i],", n.trees = ", param_grid$n.trees[i])
+  }
+  err_cv <- matrix(0, nrow = nrow(param_grid), ncol = 2)
+  for(i in 1:nrow(param_grid)){
+    print(model_labels[i])
+    err_cv[i,] <- cv.function(dat_train, K, param_grid$shrinkage[i], param_grid$n.minobsinnode[i], param_grid$n.trees[i])
     save(err_cv, file="../output/err_cv_gbm_mp.RData")
   }
 }
@@ -193,9 +201,9 @@ if(run.cv){
   load("../output/err_cv_gbm_mp.RData")
   err_cv <- as.data.frame(err_cv) 
   colnames(err_cv) <- c("mean_error", "sd_error")
-  err_cv$n.trees = as.factor(n.trees)
+  err_cv$model = model_labels
   err_cv %>% 
-    ggplot(aes(x = n.trees, y = mean_error,
+    ggplot(aes(x = model, y = mean_error,
                ymin = mean_error - sd_error, ymax = mean_error + sd_error)) + 
     geom_crossbar() +
     theme(axis.text.x = element_text(angle = 90, hjust = 1))
@@ -206,9 +214,9 @@ if(run.cv){
 * Choose the "best" parameter value
 ```{r best_model}
 if(run.cv){
-  model_best <- n.trees[which.min(err_cv[,1])]
+  model_best <- which.min(err_cv[,1])
 }
-par_best <- list(shrinkage = .01, n.minobsinnode = 10, n.trees = model_best)
+par_best <- list(shrinkage = param_grid$shrinkage[model_best], n.minobsinnode = param_grid$n.minobsinnode[model_best], n.trees = param_grid$n.trees[model_best])
 ```
 
 * Train the model with the entire training set using the selected model (model parameter) via cross-validation.
