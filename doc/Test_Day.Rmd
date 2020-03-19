@@ -1,0 +1,88 @@
+---
+title: "Base Model for Test Day"
+output: pdf_document
+---
+
+```{r message=FALSE}
+if(!require("EBImage")){
+  source("https://bioconductor.org/biocLite.R")
+  biocLite("EBImage")
+}
+if(!require("R.matlab")){
+  install.packages("R.matlab")
+}
+if(!require("readxl")){
+  install.packages("readxl")
+}
+
+if(!require("dplyr")){
+  install.packages("dplyr")
+}
+if(!require("readxl")){
+  install.packages("readxl")
+}
+
+if(!require("ggplot2")){
+  install.packages("ggplot2")
+}
+
+if(!require("caret")){
+  install.packages("caret")
+}
+
+library(R.matlab)
+library(readxl)
+library(dplyr)
+library(EBImage)
+library(ggplot2)
+library(caret)
+```
+
+### Set directories for test data
+
+```{r, eval=T}
+#test_dir <- "../data/test_set/"
+test_dir <- "../data/train_set/"
+test_image_dir <- paste(test_dir, "images/", sep="")
+test_pt_dir <- paste(test_dir,  "points/", sep="")
+```
+
+### Import data
+
+```{r read fiducial points, eval=T}
+#function to read fiducial points
+#input: index
+#output: matrix of fiducial points corresponding to the index
+readMat.matrix <- function(index){
+     return(round(readMat(paste0(test_pt_dir, sprintf("%04d", index), ".mat"))[[1]],0))
+}
+
+#load fiducial points
+n_files <- length(list.files(test_image_dir))
+fiducial_pt_list <- lapply(1:n_files, readMat.matrix)
+test_idx <- 1:n_files
+```
+
+### Construct features
+
+```{r feature, eval=T}
+source("../lib/feature.R")
+
+dat_test <- feature_test(fiducial_pt_list, test_idx)
+```
+
+### Run baseline model on test images
+
+```{r test, eval=T}
+load(file="../output/par_best_gbm_mp.RData")
+load(file="../output/fit_train_gbm_mp.RData")
+source("../lib/test_gbm_mp.R")
+pred_baseline <- test(fit_train, dat_test, par_best)
+```
+
+### Generate output csv file
+
+```{r test, eval=T}
+labels_prediction <- data.frame(Index=1:length(pred_baseline), Baseline=pred_baseline)
+write.csv(labels_prediction, file="../output/labels_prediction.csv")
+```
