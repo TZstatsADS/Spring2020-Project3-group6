@@ -41,8 +41,7 @@ library(caret)
 ### Set directories for test data
 
 ```{r, eval=T}
-#test_dir <- "../data/test_set/"
-test_dir <- "../data/train_set/"
+test_dir <- "../data/test_set/"
 test_image_dir <- paste(test_dir, "images/", sep="")
 test_pt_dir <- paste(test_dir,  "points/", sep="")
 ```

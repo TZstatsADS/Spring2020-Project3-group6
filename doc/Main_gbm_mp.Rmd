@@ -42,6 +42,8 @@ library(dplyr)
 library(EBImage)
 library(ggplot2)
 library(caret)
+
+set.seed(0)
 ```
 
 ### Step 0 set work directories
@@ -83,7 +85,7 @@ param_grid <- expand.grid(shrinkage=shrinkage, n.minobsinnode=n.minobsinnode, n.
 ```
 
 ### Step 2: import data and train-test split 
-```{r, eval=F}
+```{r, eval=T}
 #train-test split
 info <- read.csv(train_label_path)
 n <- nrow(info)
@@ -93,13 +95,13 @@ test_idx <- setdiff(info$Index,train_idx)
 ```
 
 If you choose to extract features from images, such as using Gabor filter, R memory will exhaust all images are read together. The solution is to repeat reading a smaller batch(e.g 100) and process them. 
-```{r, eval=F}
+```{r, eval=T}
 n_files <- length(list.files(train_image_dir))
 
-image_list <- list()
-for(i in 1:100){
-   image_list[[i]] <- readImage(paste0(train_image_dir, sprintf("%04d", i), ".jpg"))
-}
+#image_list <- list()
+#for(i in 1:100){
+#   image_list[[i]] <- readImage(paste0(train_image_dir, sprintf("%04d", i), ".jpg"))
+#}
 ```
 
 Fiducial points are stored in matlab format. In this step, we read them and store them in a list.
@@ -113,7 +115,7 @@ readMat.matrix <- function(index){
 
 #load fiducial points
 fiducial_pt_list <- lapply(1:n_files, readMat.matrix)
-save(fiducial_pt_list, file="../output/fiducial_pt_list.RData")
+#save(fiducial_pt_list, file="../output/fiducial_pt_list.RData")
 ```
 
 ### Step 3: construct features and responses
@@ -145,8 +147,8 @@ if(run.feature.test){
   tm_feature_test <- system.time(dat_test <- feature(fiducial_pt_list, test_idx))
 }
 
-save(dat_train, file="../output/feature_train.RData")
-save(dat_test, file="../output/feature_test.RData")
+#save(dat_train, file="../output/feature_train.RData")
+#save(dat_test, file="../output/feature_test.RData")
 ```
 
 ### Step 4: Train a classification model with training features and responses
@@ -173,8 +175,8 @@ source("../lib/test_gbm_mp.R")
 * Do model selection by choosing among different values of training model parameters.
 ```{r runcv, eval=F}
 source("../lib/cross_validation_gbm_mp.R")
-load("../output/feature_train.RData")
-load("../output/feature_test.RData")
+#load("../output/feature_train.RData")
+#load("../output/feature_test.RData")
 #load("../output/err_cv_gbm_mp.RData")
 if(run.cv){
   model_labels <- rep(NA, nrow(param_grid))
@@ -185,7 +187,7 @@ if(run.cv){
   for(i in 1:nrow(param_grid)){
     print(model_labels[i])
     err_cv[i,] <- cv.function(dat_train, K, param_grid$shrinkage[i], param_grid$n.minobsinnode[i], param_grid$n.trees[i])
-    save(err_cv, file="../output/err_cv_gbm_mp.RData")
+    #save(err_cv, file="../output/err_cv_gbm_mp.RData")
   }
 }
 ```
@@ -212,21 +214,22 @@ if(run.cv){
   model_best <- which.min(err_cv[,1])
 }
 par_best <- list(shrinkage = param_grid$shrinkage[model_best], n.minobsinnode = param_grid$n.minobsinnode[model_best], n.trees = param_grid$n.trees[model_best])
-save(par_best, file="../output/par_best_gbm_mp.RData")
+#save(par_best, file="../output/par_best_gbm_mp.RData")
 ```
 
 * Train the model with the entire training set using the selected model (model parameter) via cross-validation.
 ```{r final_train, eval=T}
+load(file="../output/par_best_gbm_mp.RData")
 tm_train=NA
 tm_train <- system.time(fit_train <- train(dat_train, par_best))
-save(fit_train, file="../output/fit_train_gbm_mp.RData")
+#save(fit_train, file="../output/fit_train_gbm_mp.RData")
 ```
 
 ### Step 5: Run test on test images
 ```{r test, eval=T}
 tm_test=NA
 if(run.test){
-  load(file="../output/fit_train_gbm_mp.RData")
+  #load(file="../output/fit_train_gbm_mp.RData")
   tm_test <- system.time(pred <- test(fit_train, dat_test, par_best))
 }
 ```
@@ -235,7 +238,7 @@ if(run.test){
 ```{r, eval=T}
 pred <- factor(pred, levels=1:22)
 accu <- mean(dat_test$emotion_idx == pred)
-cat("The accuracy of model:", model_labels[which.min(err_cv[,1])], "is", accu*100, "%.\n")
+cat("The accuracy of the baseline model is", accu*100, "%.\n")
 
 library(caret)
 confusionMatrix(pred, dat_test$emotion_idx)
