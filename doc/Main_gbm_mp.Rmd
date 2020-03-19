@@ -45,16 +45,10 @@ library(caret)
 ```
 
 ### Step 0 set work directories
-```{r wkdir, eval=T}
-set.seed(0)
-#setwd("~/Project3-FacialEmotionRecognition/doc")
-# here replace it with your own path or manually set it in RStudio to where this rmd file is located. 
-# use relative path for reproducibility
-```
 
 Provide directories for training images. Training images and Training fiducial points will be in different subfolders. 
 ```{r, eval=T}
-train_dir <- "../data/train_set/" # This will be modified for different data sets.
+train_dir <- "../data/train_set/"
 train_image_dir <- paste(train_dir, "images/", sep="")
 train_pt_dir <- paste(train_dir,  "points/", sep="")
 train_label_path <- paste(train_dir, "label.csv", sep="") 
@@ -78,9 +72,10 @@ run.feature.train=TRUE # process features for training set
 run.test=TRUE # run evaluation on an independent test set
 run.feature.test=TRUE # process features for test set
 ```
+
 Using cross-validation or independent test set evaluation, we compare the performance of models with different specifications. In this Starter Code, we tune parameter k (number of neighbours) for KNN.
 
-```{r model_setup, eval=T}
+```{r gbm_parameters, eval=T}
 shrinkage <- c(0.001, 0.01, 0.1)
 n.minobsinnode <- c(5, 10, 15)
 n.trees <- c(200, 300, 400)
@@ -88,7 +83,7 @@ param_grid <- expand.grid(shrinkage=shrinkage, n.minobsinnode=n.minobsinnode, n.
 ```
 
 ### Step 2: import data and train-test split 
-```{r, eval=T}
+```{r, eval=F}
 #train-test split
 info <- read.csv(train_label_path)
 n <- nrow(info)
@@ -98,7 +93,7 @@ test_idx <- setdiff(info$Index,train_idx)
 ```
 
 If you choose to extract features from images, such as using Gabor filter, R memory will exhaust all images are read together. The solution is to repeat reading a smaller batch(e.g 100) and process them. 
-```{r, eval=T}
+```{r, eval=F}
 n_files <- length(list.files(train_image_dir))
 
 image_list <- list()
@@ -196,7 +191,7 @@ if(run.cv){
 ```
 
 Visualize cross-validation results. 
-```{r cv_vis}
+```{r cv_vis, eval=F}
 if(run.cv){
   load("../output/err_cv_gbm_mp.RData")
   err_cv <- as.data.frame(err_cv) 
@@ -212,22 +207,23 @@ if(run.cv){
 
 
 * Choose the "best" parameter value
-```{r best_model}
+```{r best_model, eval=F}
 if(run.cv){
   model_best <- which.min(err_cv[,1])
 }
 par_best <- list(shrinkage = param_grid$shrinkage[model_best], n.minobsinnode = param_grid$n.minobsinnode[model_best], n.trees = param_grid$n.trees[model_best])
+save(par_best, file="../output/par_best_gbm_mp.RData")
 ```
 
 * Train the model with the entire training set using the selected model (model parameter) via cross-validation.
-```{r final_train}
+```{r final_train, eval=T}
 tm_train=NA
 tm_train <- system.time(fit_train <- train(dat_train, par_best))
 save(fit_train, file="../output/fit_train_gbm_mp.RData")
 ```
 
 ### Step 5: Run test on test images
-```{r test}
+```{r test, eval=T}
 tm_test=NA
 if(run.test){
   load(file="../output/fit_train_gbm_mp.RData")
@@ -236,7 +232,7 @@ if(run.test){
 ```
 
 * evaluation
-```{r}
+```{r, eval=T}
 pred <- factor(pred, levels=1:22)
 accu <- mean(dat_test$emotion_idx == pred)
 cat("The accuracy of model:", model_labels[which.min(err_cv[,1])], "is", accu*100, "%.\n")
@@ -249,7 +245,7 @@ Note that the accuracy is not high but is better than that of random guess(4.5%)
 
 ### Summarize Running Time
 Prediction performance matters, so does the running times for constructing features and for training the model, especially when the computation resource is limited. 
-```{r running_time}
+```{r running_time, eval=T}
 cat("Time for constructing training features=", tm_feature_train[1], "s \n")
 cat("Time for constructing testing features=", tm_feature_test[1], "s \n")
 cat("Time for training model=", tm_train[1], "s \n")
