@@ -1,0 +1,186 @@
+---
+title: "pca_svm_cv"
+author: "Daniel Schmidle - dps2150"
+date: "3/17/2020"
+output: html_document
+---
+
+Load and combine data 
+
+```{r}
+load("../output/feature_train.RData")
+load("../output/feature_test.RData")
+library(caTools)
+library(caret)
+library(e1071)
+```
+
+Recombine the test and train data
+```{r}
+data <- rbind(dat_train,dat_test)
+dim(data)
+```
+
+Part 1
+------------------------------------------------------------------------------------------------------
+
+Test loop for randomly assigned test and train splits and cv on cost of linear svm
+
+```{r}
+#n number of split/train/test
+n <- 10
+#vectors for accuracy predictions and cost parameter
+test_preds <- vector(length=n)
+train_preds <- vector(length=n)
+c_vec <- vector(length=n)
+
+
+for(i in 1:n){
+
+#random split dataaset
+split <- sample.split(data$emotion_idx, SplitRatio = 0.8)
+
+dat_train <- subset(data,split==T)
+dat_test <-  subset(data,split==F)
+
+
+#PCA
+dat_train[,-6007] <- scale(dat_train[,-6007])
+dat_test[,-6007] <- scale(dat_test[,-6007])
+ 
+pca <- preProcess(x=dat_train[-6007],method="pca",thresh=0.99)
+dat_train <- predict(pca,dat_train)
+dat_test <- predict(pca,dat_test)
+
+
+#CV on SVM cost parameter 
+c_vals <- 2^(seq(-11,-8,0.5))
+lin_tune <- tune(svm,emotion_idx~.,data=dat_train,kernel="linear",ranges=list(cost=c_vals),scale=F)
+summary(lin_tune)
+
+
+#SVM model
+c <- lin_tune$best.parameters$cost
+lin_svm <- svm(emotion_idx~.,
+               data= dat_train,
+               type="C",
+               kernel="linear",
+               scale=F,
+               cost=c)
+summary(lin_svm)
+
+#test and train accuracy 
+test_pred <- predict(lin_svm,dat_test[,-1])
+train_pred <- predict(lin_svm,dat_train[,-1])
+test_preds[i] <- mean(test_pred==dat_test[,1])
+train_preds[i] <- mean(train_pred==dat_train[,1])
+
+#cost values for 2^c
+c_vec[i] <- log(c,base=2)/log(2,base=2)
+
+#see current loop 
+print(i)
+}
+
+test_preds
+train_preds
+c_vec
+
+```
+
+```{r}
+#results as dataset
+result <- as.data.frame(cbind(test_preds,train_preds,c_vec))
+```
+
+```{r}
+#combine and store results 
+load("../output/cv_results.RData")
+
+cv_results <- rbind(cv_results,result)
+
+save(cv_results,file="../output/cv_results.RData")
+```
+
+```{r}
+#evaluation of accuracy expectations and parameters 
+head(cv_results)
+
+apply(cv_results,2,mean)
+apply(cv_results,2,summary)
+sd(cv_results$test_preds)
+
+```
+
+Part 2
+----------------------------------------------------------------------------------------------
+
+Same test loop as above but with no cross validation and a fixed cost parameter to reflect the split of data in Main.Rmd based on the set.seed(0). This is to test the expected value of accuracy of the model. 
+
+```{r}
+n <- 100
+test_preds <- vector(length=n)
+train_preds <- vector(length=n)
+
+for(i in 1:n){
+
+#dataset 
+split <- sample.split(data$emotion_idx, SplitRatio = 0.8)
+
+dat_train <- subset(data,split==T)
+dat_test <-  subset(data,split==F)
+
+
+#PCA
+dat_train[,-6007] <- scale(dat_train[,-6007])
+dat_test[,-6007] <- scale(dat_test[,-6007])
+ 
+pca <- preProcess(x=dat_train[-6007],method="pca",thresh=0.99)
+dat_train <- predict(pca,dat_train)
+dat_test <- predict(pca,dat_test)
+
+
+#SVM model
+c <- 2^(-10.5)
+lin_svm <- svm(emotion_idx~.,
+               data= dat_train,
+               type="C",
+               kernel="linear",
+               scale=F,
+               cost=c)
+summary(lin_svm)
+
+test_pred <- predict(lin_svm,dat_test[,-1])
+
+test_preds[i] <- mean(test_pred==dat_test[,1])
+
+#see current loop 
+print(i)
+}
+
+test_preds
+
+
+```
+
+```{r}
+#combine and store results 
+load("../output/advanced_preds.RData")
+
+total_test_preds <- c(total_test_preds,test_preds)
+
+save(total_test_preds,file="../output/advanced_preds.RData")
+```
+
+
+
+```{r}
+#Expected value for the advanced model 
+summary(total_test_preds)
+mean(total_test_preds)
+```
+
+
+
+
+
