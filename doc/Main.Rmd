@@ -1,7 +1,8 @@
 ---
 title: "Main"
-author: "Chengliang Tang, Yujie Wang, Tian Zheng"
+author: "Group 6"
 output:
+  pdf_document: default
   html_document:
     df_print: paged
 ---
@@ -36,25 +37,31 @@ if(!require("caret")){
   install.packages("caret")
 }
 
+if(!require("caTools")){
+  install.packages("caTools")
+}
+
+if(!require("e1071")){
+  install.packages("e1071")
+}
+
 library(R.matlab)
 library(readxl)
 library(dplyr)
 library(EBImage)
 library(ggplot2)
 library(caret)
+library(caTools)
+library(e1071)
+
+set.seed(0)
 ```
 
 ### Step 0 set work directories
-```{r wkdir, eval=FALSE}
-set.seed(0)
-setwd("~/Project3-FacialEmotionRecognition/doc")
-# here replace it with your own path or manually set it in RStudio to where this rmd file is located. 
-# use relative path for reproducibility
-```
 
 Provide directories for training images. Training images and Training fiducial points will be in different subfolders. 
-```{r}
-train_dir <- "../data/train_set/" # This will be modified for different data sets.
+```{r, eval=T}
+train_dir <- "../data/train_set/"
 train_image_dir <- paste(train_dir, "images/", sep="")
 train_pt_dir <- paste(train_dir,  "points/", sep="")
 train_label_path <- paste(train_dir, "label.csv", sep="") 
@@ -66,27 +73,28 @@ train_label_path <- paste(train_dir, "label.csv", sep="")
 In this chunk, we have a set of controls for the evaluation experiments. 
 
 + (T/F) cross-validation on the training set
-+ (number) K, the number of CV folds
 + (T/F) process features for training set
 + (T/F) run evaluation on an independent test set
 + (T/F) process features for test set
 
-```{r exp_setup}
+```{r exp_setup, eval=T}
 run.cv=TRUE # run cross-validation on the training set
-K <- 5  # number of CV folds
 run.feature.train=TRUE # process features for training set
 run.test=TRUE # run evaluation on an independent test set
 run.feature.test=TRUE # process features for test set
 ```
-Using cross-validation or independent test set evaluation, we compare the performance of models with different specifications. In this Starter Code, we tune parameter k (number of neighbours) for KNN.
 
-```{r model_setup}
-k = c(5,11,21,31,41,51)
-model_labels = paste("KNN with K =", k)
+Using cross-validation or independent test set evaluation, we compare the performance of models with different specifications. This code defines the parameters that will be tested for the baseline GBM model.
+
+```{r gbm_parameters, eval=T}
+shrinkage <- c(0.001, 0.01, 0.1)
+n.minobsinnode <- c(5, 10, 15)
+n.trees <- c(200, 300, 400)
+param_grid <- expand.grid(shrinkage=shrinkage, n.minobsinnode=n.minobsinnode, n.trees=n.trees)
 ```
 
 ### Step 2: import data and train-test split 
-```{r}
+```{r, eval=T}
 #train-test split
 info <- read.csv(train_label_path)
 n <- nrow(info)
@@ -95,18 +103,18 @@ train_idx <- sample(info$Index, n_train, replace = F)
 test_idx <- setdiff(info$Index,train_idx)
 ```
 
-If you choose to extract features from images, such as using Gabor filter, R memory will exhaust all images are read together. The solution is to repeat reading a smaller batch(e.g 100) and process them. 
-```{r}
+We did not extract features from the images themselves, so this code chunk only determines the number of images.
+```{r, eval=T}
 n_files <- length(list.files(train_image_dir))
 
-image_list <- list()
-for(i in 1:100){
-   image_list[[i]] <- readImage(paste0(train_image_dir, sprintf("%04d", i), ".jpg"))
-}
+#image_list <- list()
+#for(i in 1:100){
+#   image_list[[i]] <- readImage(paste0(train_image_dir, sprintf("%04d", i), ".jpg"))
+#}
 ```
 
 Fiducial points are stored in matlab format. In this step, we read them and store them in a list.
-```{r read fiducial points}
+```{r read fiducial points, eval=T}
 #function to read fiducial points
 #input: index
 #output: matrix of fiducial points corresponding to the index
@@ -116,135 +124,179 @@ readMat.matrix <- function(index){
 
 #load fiducial points
 fiducial_pt_list <- lapply(1:n_files, readMat.matrix)
-save(fiducial_pt_list, file="../output/fiducial_pt_list.RData")
+#save(fiducial_pt_list, file="../output/fiducial_pt_list.RData")
 ```
 
-### Step 3: construct features and responses
+### Step 3: Construct features and responses
 
-+ The follow plots show how pairwise distance between fiducial points can work as feature for facial emotion recognition.
+For the baseline model, we use the feature extraction from the starter code, which calculates the pairwise distances between the fiducial points.
 
-  + In the first column, 78 fiducials points of each emotion are marked in order. 
-  + In the second column distributions of vertical distance between right pupil(1) and  right brow peak(21) are shown in  histograms. For example, the distance of an angry face tends to be shorter than that of a surprised face.
-  + The third column is the distributions of vertical distances between right mouth corner(50)
-and the midpoint of the upper lip(52).  For example, the distance of an happy face tends to be shorter than that of a sad face.
-
-![Figure1](../figs/feature_visualization.jpg)
-
-`feature.R` should be the wrapper for all your feature engineering functions and options. The function `feature( )` should have options that correspond to different scenarios for your project and produces an R object that contains features and responses that are required by all the models you are going to evaluate later. 
-  
-  + `feature.R`
-  + Input: list of images or fiducial point
-  + Output: an RData file that contains extracted features and corresponding responses
-
-```{r feature}
+```{r feature, eval=T}
 source("../lib/feature.R")
-tm_feature_train <- NA
+tm_feature_train_base <- NA
 if(run.feature.train){
-  tm_feature_train <- system.time(dat_train <- feature(fiducial_pt_list, train_idx))
+  tm_feature_train_base <- system.time(dat_train <- feature(fiducial_pt_list, train_idx))
 }
 
-tm_feature_test <- NA
+tm_feature_test_base <- NA
 if(run.feature.test){
-  tm_feature_test <- system.time(dat_test <- feature(fiducial_pt_list, test_idx))
+  tm_feature_test_base <- system.time(dat_test <- feature(fiducial_pt_list, test_idx))
 }
 
-save(dat_train, file="../output/feature_train.RData")
-save(dat_test, file="../output/feature_test.RData")
+#save(dat_train, file="../output/feature_train.RData")
+#save(dat_test, file="../output/feature_test.RData")
+```
+
+#### Perform PCA on features
+
+For the advanced model, we run PCA on the features extracted in the previous step.
+
+```{r pca, eval=T}
+#Perform PCA analysis on training data, and transform features from training data into PCAs
+start_time <-  Sys.time()
+dat_train_pca <- data.frame(dat_train)
+dat_train_pca[,-6007] <- scale(dat_train_pca[,-6007])
+pca <- preProcess(x=dat_train_pca[-6007], method="pca", thresh=0.99)
+dat_train_pca <- predict(pca, dat_train_pca)
+end_time <- Sys.time()
+#The total advanced model feature training time is the base feature training time plus PCA time
+tm_feature_train_advanced <- difftime(end_time, start_time, units="secs") + tm_feature_train_base[1]
+
+#Transform features from test data into PCAs
+start_time <-  Sys.time()
+dat_test_pca <- data.frame(dat_test)
+dat_test_pca[,-6007] <- scale(dat_test_pca[,-6007])
+dat_test_pca <- predict(pca, dat_test_pca)
+end_time <- Sys.time()
+#The total advanced model feature training time is the base feature training time plus PCA time
+tm_feature_test_advanced <- difftime(end_time, start_time, units="secs") + tm_feature_test_base[1]
 ```
 
 ### Step 4: Train a classification model with training features and responses
-Call the train model and test model from library. 
 
-`train.R` and `test.R` should be wrappers for all your model training steps and your classification/prediction steps. 
+#### Baseline model
 
-+ `train.R`
-  + Input: a data frame containing features and labels and a parameter list.
-  + Output:a trained model
-+ `test.R`
-  + Input: the fitted classification model using training data and processed features from testing images 
-  + Input: an R object that contains a trained classifier.
-  + Output: training model specification
-
-+ In this Starter Code, we use KNN to do classification. 
+For the baseline model, we use a GBM model.
 
 ```{r loadlib}
-#source("../lib/train.R") Since knn does not need to train, I comment this line.
-source("../lib/test_knn.R")
+source("../lib/train_gbm_mp.R")
+source("../lib/test_gbm_mp.R")
 ```
 
-#### Model selection with cross-validation
-* Do model selection by choosing among different values of training model parameters.
+The code below runs cross-validation for the baseline model, in order to choose the best parameters for the GBM model. (Since it takes over 24 hours to run cross-validation on all parameter combinations, we recommend keeping eval=F.)
+
 ```{r runcv, eval=F}
-source("../lib/cross_validation_knn.R")
+source("../lib/cross_validation_gbm_mp.R")
+#load("../output/feature_train.RData")
+#load("../output/feature_test.RData")
+#load("../output/err_cv_gbm_mp.RData")
 if(run.cv){
-  err_cv <- matrix(0, nrow = length(k), ncol = 2)
-  for(i in 1:length(k)){
-    cat("k=", k[i], "\n")
-    err_cv[i,] <- cv.function(dat_train, K, k[i])
-  save(err_cv, file="../output/err_cv.RData")
+  model_labels <- rep(NA, nrow(param_grid))
+  for(i in 1:nrow(param_grid)){
+    model_labels[i] <- paste0("GBM with shrinkage = ",param_grid$shrinkage[i],", n.minobsinnode = ",param_grid$n.minobsinnode[i],", n.trees = ", param_grid$n.trees[i])
+  }
+  err_cv <- matrix(0, nrow = nrow(param_grid), ncol = 2)
+  for(i in 1:nrow(param_grid)){
+    print(model_labels[i])
+    err_cv[i,] <- cv.function(dat_train, K, param_grid$shrinkage[i], param_grid$n.minobsinnode[i], param_grid$n.trees[i])
+    #save(err_cv, file="../output/err_cv_gbm_mp.RData")
   }
 }
 ```
 
-Visualize cross-validation results. 
-```{r cv_vis}
-if(run.cv){
-  load("../output/err_cv.RData")
-  err_cv <- as.data.frame(err_cv) 
-  colnames(err_cv) <- c("mean_error", "sd_error")
-  err_cv$k = as.factor(k)
-  err_cv %>% 
-    ggplot(aes(x = k, y = mean_error,
-               ymin = mean_error - sd_error, ymax = mean_error + sd_error)) + 
-    geom_crossbar() +
-    theme(axis.text.x = element_text(angle = 90, hjust = 1))
-}
+Based on the above cross-validation, choose the best parameter values. Our cross-validation found the best values to be 0.1 for shrinkage, 15 for the # of minimum observations in terminal nodes, and 400 for the # of trees.
 
+```{r best_model, eval=F}
+if(run.cv){
+  model_best <- which.min(err_cv[,1])
+}
+par_best <- list(shrinkage = param_grid$shrinkage[model_best], n.minobsinnode = param_grid$n.minobsinnode[model_best], n.trees = param_grid$n.trees[model_best])
+#save(par_best, file="../output/par_best_gbm_mp.RData")
 ```
 
+Train the model with the entire training set using the selected GBM parameters.
 
-* Choose the "best" parameter value
-```{r best_model}
-if(run.cv){
-  model_best <- k[which.min(err_cv[,1])]
-}
-par_best <- list(k = model_best)
+```{r final_train, eval=T}
+load(file="../output/par_best_gbm_mp.RData")
+tm_train_base=NA
+tm_train_base <- system.time(fit_train <- train(dat_train, par_best))
+#save(fit_train, file="../output/fit_train_gbm_mp.RData")
 ```
 
-* Train the model with the entire training set using the selected model (model parameter) via cross-validation.
-```{r final_train}
-#tm_train=NA
-#tm_train <- system.time(fit_train <- train(dat_train, par_best))
-#save(fit_train, file="../output/fit_train.RData")
+#### Advanced model
+
+For the advanced model, we use a SVM model.
+
+The code below runs cross-validation for the advanced model, in order to choose the best cost parameter value for the SVM model.
+
+```{r runcv_svm, eval=T}
+c_vals <- 2^(seq(-12, -8, 0.5))
+lin_tune <- tune(svm, emotion_idx~., data=dat_train_pca, kernel="linear", ranges=list(cost=c_vals), scale=F)
+c <- lin_tune$best.parameters$cost
+```
+
+Train the model with the entire training set using the selected SVM parameter.
+
+```{r final_train_svm, eval=T}
+tm_train_advanced=NA
+tm_train_advanced <- system.time(pca_svm <- svm(emotion_idx~., data=dat_train_pca, type="C", kernel="linear", scale=F, cost=c))
+#saveRDS(pca_svm, "../output/pca_svm_model.RDS")
 ```
 
 ### Step 5: Run test on test images
-```{r test}
-tm_test=NA
+
+#### Baseline model
+
+```{r test, eval=T}
+tm_test_base=NA
 if(run.test){
-  load(file="../output/fit_train.RData")
-  tm_test <- system.time(pred <- test(model_best, dat_test))
+  #load(file="../output/fit_train_gbm_mp.RData")
+  tm_test_base <- system.time(pred <- test(fit_train, dat_test, par_best))
 }
 ```
 
-* evaluation
-```{r}
-accu <- mean(dat_test$emotion_idx == pred)
-cat("The accuracy of model:", model_labels[which.min(err_cv[,1])], "is", accu*100, "%.\n")
+#### Advanced model
 
-library(caret)
+```{r test_svm, eval=T}
+tm_test_advanced=NA
+if(run.test){
+  #pca_svm <- readRDS("../output/pca_svm_model.RDS")
+  tm_test_advanced <- system.time(pred_advanced <- predict(pca_svm, dat_test_pca[,-1]))
+}
+```
+
+### Evaluation
+
+#### Baseline model
+
+```{r, eval=T}
+pred <- factor(pred, levels=1:22)
+accu <- mean(dat_test$emotion_idx == pred)
+cat("The accuracy of the baseline model is", accu*100, "%.\n")
 confusionMatrix(pred, dat_test$emotion_idx)
 ```
 
-Note that the accuracy is not high but is better than that of ramdom guess(4.5%). 
+#### Advanced model
+
+```{r, eval=T}
+pred_advanced <- factor(pred_advanced, levels=1:22)
+accu_advanced <- mean(dat_test$emotion_idx == pred_advanced)
+cat("The accuracy of the advanced model is", accu_advanced*100, "%.\n")
+confusionMatrix(pred_advanced, dat_test$emotion_idx)
+```
 
 ### Summarize Running Time
-Prediction performance matters, so does the running times for constructing features and for training the model, especially when the computation resource is limited. 
-```{r running_time}
-cat("Time for constructing training features=", tm_feature_train[1], "s \n")
-cat("Time for constructing testing features=", tm_feature_test[1], "s \n")
-#cat("Time for training model=", tm_train[1], "s \n")
-cat("Time for testing model=", tm_test[1], "s \n")
+
+```{r running_time, eval=T}
+cat("Baseline model: Time for constructing training features=", tm_feature_train_base[1], "s \n")
+cat("Baseline model: Time for constructing testing features=", tm_feature_test_base[1], "s \n")
+cat("Baseline model: Time for training model=", tm_train_base[1], "s \n")
+cat("Baseline model: Time for testing model=", tm_test_base[1], "s \n")
+
+cat("Advanced model: Time for constructing training features=", tm_feature_train_advanced, "s \n")
+cat("Advanced model: Time for constructing testing features=", tm_feature_test_advanced, "s \n")
+cat("Advanced model: Time for training model=", tm_train_advanced[1], "s \n")
+cat("Advanced model: Time for testing model=", tm_test_advanced[1], "s \n")
 ```
 
 ###Reference

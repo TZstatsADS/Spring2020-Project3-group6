@@ -30,12 +30,17 @@ if(!require("caret")){
   install.packages("caret")
 }
 
+if(!require("e1071")){
+  install.packages("e1071")
+}
+
 library(R.matlab)
 library(readxl)
 library(dplyr)
 library(EBImage)
 library(ggplot2)
 library(caret)
+library(e1071)
 ```
 
 ### Set directories for test data
@@ -62,12 +67,18 @@ fiducial_pt_list <- lapply(1:n_files, readMat.matrix)
 test_idx <- 1:n_files
 ```
 
-### Construct features
+### Construct features and perform PCA
 
 ```{r feature, eval=T}
 source("../lib/feature.R")
 
 dat_test <- feature_test(fiducial_pt_list, test_idx)
+
+pca <- readRDS("../output/pca.RDS")
+
+dat_test_pca <- data.frame(dat_test)
+dat_test_pca <- scale(dat_test_pca)
+dat_test_pca <- predict(pca, dat_test_pca)
 ```
 
 ### Run baseline model on test images
@@ -79,9 +90,16 @@ source("../lib/test_gbm_mp.R")
 pred_baseline <- test(fit_train, dat_test, par_best)
 ```
 
+### Run advanced model on test images
+
+```{r test, eval=T}
+pca_svm <- readRDS("../output/pca_svm_model.RDS")
+pred_advanced <- predict(pca_svm, dat_test_pca)
+```
+
 ### Generate output csv file
 
 ```{r test, eval=T}
-labels_prediction <- data.frame(Index=1:length(pred_baseline), Baseline=pred_baseline)
+labels_prediction <- data.frame(Index=1:length(pred_baseline), Baseline=pred_baseline, Advanced=pred_advanced)
 write.csv(labels_prediction, file="../output/labels_prediction.csv")
 ```
