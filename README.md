@@ -8,11 +8,11 @@ Term: Spring 2020
 
 + Team ##
 + Team members
-	+ team member 1
-	+ team member 2
-	+ team member 3
-	+ team member 4
-	+ team member 5
+	+ Lee, Sol
+	+ Ni, Jiayun
+	+ Petkun, Michael 
+	+ Schmidle, Daniel
+	+ Zhang, Tianshu 
 
 + Project summary: In this project, we created a classification engine for facial emotion recognition. 
 	
