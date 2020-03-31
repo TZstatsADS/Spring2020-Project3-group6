@@ -1,4 +1,4 @@
-# Project: Can you recognize the emotion from an image of a face?
+# Applied Data Science Project 3: Can you recognize the emotion from an image of a face?
 
 ### Data folder
 
