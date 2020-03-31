@@ -21,7 +21,7 @@ Term: Spring 2020
 
 [Contribution Statement] 
 
-Jiayun Ni is responsible for debugging and testing models as well as establishing the classification models by using knn with pca model, bagging models and bagging with pca models.
+**Jiayun Ni** is responsible for debugging and testing models as well as establishing the classification models by using knn with pca model, bagging models and bagging with pca models.
 
 
 Following [suggestions](http://nicercode.github.io/blog/2013-04-05-projects/) by [RICH FITZJOHN](http://nicercode.github.io/about/#Team) (@richfitz). This folder is orgarnized as follows.
