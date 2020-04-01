@@ -46,7 +46,7 @@ library(e1071)
 ### Set directories for test data
 
 ```{r, eval=T}
-test_dir <- "../data/test_set/"
+test_dir <- "../data/test_set_predict/"
 test_image_dir <- paste(test_dir, "images/", sep="")
 test_pt_dir <- paste(test_dir,  "points/", sep="")
 ```
@@ -101,5 +101,5 @@ pred_advanced <- predict(pca_svm, dat_test_pca)
 
 ```{r test, eval=T}
 labels_prediction <- data.frame(Index=1:length(pred_baseline), Baseline=pred_baseline, Advanced=pred_advanced)
-write.csv(labels_prediction, file="../output/labels_prediction.csv")
+write.csv(labels_prediction, file="../data/test_set_predict/labels_prediction.csv")
 ```
