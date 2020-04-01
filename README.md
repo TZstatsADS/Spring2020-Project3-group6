@@ -23,7 +23,7 @@ Term: Spring 2020
 
 Daniel Schmidle, as a major contributor, involved in every stage of the project’s development and discussion. Daniel built individual base gbm model for project understanding, developed the PCA + SVM model as the advanced model, cross validated the advanced PCA+SVM model, and created/recorded the group’s project presentation. 
 
-Michael Petkun, another major contributor, built the baseline model and compiled the Main.Rmd and Test_Day.Rmd files.
+Michael Petkun, another major contributor, involved in every stage of the project’s development and discussion. Michael built the baseline model and compiled the Main.Rmd and Test_Day.Rmd files.
 
 Tianshu Zhang actively participated in all meetings, contributed inputs in the model selection process, and built a CNN Resnet-18 model (Neural Network model).
 
