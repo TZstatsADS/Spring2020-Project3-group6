@@ -27,7 +27,7 @@ Tianshu Zhang actively participated in all meetings, contributed inputs in the m
 
 Sol Lee organinzed recurring Zoom meetings, actively participated and contributed inputs in the model selection process, and built a SVM model. Sol edited Readme.md and organized the Github URL.
 
-Jiayun Ni actively participated in all meetings, contributed inputs in the model selection process, and built a KNN+PCA model.
+Jiayun Ni actively participated in all meetings, contributed to the model selection process. Jiayun debugged and tested models, and established classification models by using knn with pca model as well as bagging models and bagging with pca models.
 
 All team members contributed to the GitHub repository. All team members approve our work presented in our GitHub repository including this contribution statement.
 
