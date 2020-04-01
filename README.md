@@ -23,9 +23,9 @@ Daniel Schmidle, as a major contributor, involved in every stage of the projectâ
 
 Michael Petkun, another major contributor, involved in every stage of the projectâ€™s development and discussion. Michael built the baseline model and compiled the Main.Rmd and Test_Day.Rmd files.
 
-Tianshu Zhang actively participated in all meetings, contributed inputs in the model selection process, and built a CNN Resnet-18 model (Neural Network model).
+Tianshu Zhang actively participated in all meetings, contributed inputs in the model selection process, tested models, and built a CNN Resnet-18 model (Neural Network model).
 
-Sol Lee organinzed recurring Zoom meetings, actively participated and contributed inputs in the model selection process, and built a SVM model. Sol edited Readme.md and organized the Github URL.
+Sol Lee organinzed recurring Zoom meetings, actively participated and contributed inputs in the model selection process, tested models, and built a SVM model. Sol edited Readme.md and organized the Github URL.
 
 Jiayun Ni actively participated in all meetings, contributed to the model selection process. Jiayun debugged and tested models, and established classification models by using knn with pca model as well as bagging models and bagging with pca models.
 
