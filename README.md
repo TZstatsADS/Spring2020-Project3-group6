@@ -19,8 +19,6 @@ Term: Spring 2020
 	
 **Contribution statement**: ([default](doc/a_note_on_contributions.md)) 
 
-[Contribution Statement] 
-
 Daniel Schmidle, as a major contributor, involved in every stage of the project’s development and discussion. Daniel built individual base gbm model for project understanding, developed the PCA + SVM model as the advanced model, cross validated the advanced PCA+SVM model, and created/recorded the group’s project presentation. 
 
 Michael Petkun, another major contributor, involved in every stage of the project’s development and discussion. Michael built the baseline model and compiled the Main.Rmd and Test_Day.Rmd files.
