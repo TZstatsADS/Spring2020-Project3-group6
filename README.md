@@ -15,7 +15,7 @@ Term: Spring 2020
 	+ Schmidle, Daniel
 	+ Zhang, Tianshu 
 
-+ Project summary: In this project, we developed multiple classification models to perform facial emotion recognition. Comparing with a baseline model, our models have improved the test accuracy, computational cost, and storage size. The best model is particularly introduced to the class with the presentation. 
++ Project summary: In this project, we developed multiple classification models to perform facial emotion recognition. Comparing with a baseline model we chose (Gradient Boosting Machine), our models have improved the test accuracy, computational cost, and storage size. The best model out of all models tested is SVM + PCA model, which is to be introduced and explained more thoroughly to the class during the presentation. 
 	
 **Contribution statement**: ([default](doc/a_note_on_contributions.md)) 
 
