@@ -19,7 +19,19 @@ Term: Spring 2020
 	
 **Contribution statement**: ([default](doc/a_note_on_contributions.md)) 
 
-[Contribution Statement] AB, CD, EF and GH designed the study. AB and CD developed baseline classification model for evaluation. EF and GH explored feature engineering for improving the baseline model. AB, EF and GH discussed and designed the model evaluation protocol. CD carried out the computation for model evaluation. All team members contributed to the GitHub repository and prepared the presentation. All team members approve our work presented in our GitHub repository including this contribution statement.
+[Contribution Statement] 
+
+Daniel Schmidle, as a major contributor, involved in every stage of the project’s development and discussion. Daniel built individual base gbm model for project understanding, developed the PCA + SVM model as the advanced model, cross validated the advanced PCA+SVM model, and created/recorded the group’s project presentation. 
+
+Michael Petkun, another major contributor, built the baseline model and compiled the Main.Rmd and Test_Day.Rmd files.
+
+Tianshu Zhang actively participated in all meetings, contributed inputs in the model selection process, and built a CNN Resnet-18 model (Neural Network model).
+
+Sol Lee organinzed recurring Zoom meetings, actively participated and contributed inputs in the model selection process, and built a SVM model. Sol edited Readme.md and organized the Github URL.
+
+Jiayun Ni actively participated in all meetings, contributed inputs in the model selection process, and built a KNN+PCA model.
+
+All team members contributed to the GitHub repository. All team members approve our work presented in our GitHub repository including this contribution statement.
 
 Following [suggestions](http://nicercode.github.io/blog/2013-04-05-projects/) by [RICH FITZJOHN](http://nicercode.github.io/about/#Team) (@richfitz). This folder is orgarnized as follows.
 
